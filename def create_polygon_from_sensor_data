@@ -1,0 +1,3 @@
+def create_polygon_from_sensor_data(sensor_data: List[Tuple[float, float]]) -> Polygon:
+    """ Create a polygon from LiDAR sensor data (already in robot frame) """
+    return Polygon(sensor_data)
