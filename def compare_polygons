@@ -1,0 +1,5 @@
+def compare_polygons(p1: Polygon, p2: Polygon) -> float:
+    """ Compare polygons using turning functions """
+    tf1 = compute_turning_function(p1)
+    tf2 = compute_turning_function(p2)
+    return l2_norm_distance(tf1, tf2)
