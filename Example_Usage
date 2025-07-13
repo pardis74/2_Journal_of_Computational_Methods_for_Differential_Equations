@@ -1,0 +1,20 @@
+if __name__ == "__main__":
+    # Mock map (square room)
+    map_env = Polygon([(0, 0), (0, 10), (10, 10), (10, 0)])
+
+    # Initial robot position
+    Or_old = (5.0, 5.0)
+
+    # Simulated sensor data (circle around robot)
+    sensor_data = [(5.0 + math.cos(a), 5.0 + math.sin(a)) for a in np.linspace(0, 2 * math.pi, 36)]
+
+    # Simulated robot movement
+    robot_actions = (0.2, -0.1)  # moved slightly
+
+    # Parameters
+    delta = 1.0
+    epsilon = 0.01
+    threshold = 0.2
+
+    Or_new = RLuTF(Or_old, map_env, sensor_data, robot_actions, delta, epsilon, threshold)
+    print("Updated Position:", Or_new)
