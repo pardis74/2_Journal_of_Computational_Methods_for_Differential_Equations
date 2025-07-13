@@ -1,0 +1,11 @@
+def l2_norm_distance(tf1: List[float], tf2: List[float]) -> float:
+    """ Compute L2 norm distance between two turning functions, minimizing over circular shifts """
+    min_len = min(len(tf1), len(tf2))
+    tf1, tf2 = tf1[:min_len], tf2[:min_len]
+    best = float('inf')
+    for shift in range(min_len):
+        tf2_shifted = np.roll(tf2, shift)
+        dist = np.linalg.norm(np.array(tf1) - np.array(tf2_shifted))
+        if dist < best:
+            best = dist
+    return best
