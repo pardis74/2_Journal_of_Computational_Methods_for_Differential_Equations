@@ -11,16 +11,3 @@ This repository contains an implementation of the **RLuTF algorithm** for 2D rob
 - **Iterative position refinement:** Searches around the best candidate location, narrowing the search radius logarithmically until achieving target accuracy.
 - **Core components included:** Motion modeling, polygon construction, turning function computation, polygon comparison, and candidate selection.
 
----
-
-## Repository Structure
-
-- `main.py`  
-  Entry point for running optimization and localization routines.
-
-  ```bash
-  # Run meta-goal programming optimization
-  python main.py --mode goal
-
-  # Run NSGA-II heuristic optimization
-  python main.py --mode nsga2
