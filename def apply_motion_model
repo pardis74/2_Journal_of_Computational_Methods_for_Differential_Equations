@@ -1,0 +1,4 @@
+def apply_motion_model(Or_old: Tuple[float, float], actions: Tuple[float, float]) -> Tuple[float, float]:
+    """ Apply a simple motion model to estimate the new virtual position """
+    dx, dy = actions  # assume (delta_x, delta_y) from robot odometry
+    return Or_old[0] + dx, Or_old[1] + dy
