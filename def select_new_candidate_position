@@ -1,0 +1,6 @@
+def select_new_candidate_position(center: Tuple[float, float], radius: float) -> Tuple[float, float]:
+    """ Select a new candidate position around the current best estimate """
+    angle = random.uniform(0, 2 * math.pi)
+    dx = radius * math.cos(angle)
+    dy = radius * math.sin(angle)
+    return center[0] + dx, center[1] + dy
