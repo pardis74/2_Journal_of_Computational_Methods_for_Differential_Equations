@@ -1,0 +1,110 @@
+import numpy as np
+import math
+import random
+from shapely.geometry import Polygon, Point
+from scipy.spatial.distance import euclidean
+from typing import List, Tuple
+
+
+def apply_motion_model(Or_old: Tuple[float, float], actions: Tuple[float, float]) -> Tuple[float, float]:
+    """ Apply a simple motion model to estimate the new virtual position """
+    dx, dy = actions  # assume (delta_x, delta_y) from robot odometry
+    return Or_old[0] + dx, Or_old[1] + dy
+
+
+def create_polygon_from_sensor_data(sensor_data: List[Tuple[float, float]]) -> Polygon:
+    """ Create a polygon from LiDAR sensor data (already in robot frame) """
+    return Polygon(sensor_data)
+
+
+def create_polygon_from_virtual_position(position: Tuple[float, float], env_map: Polygon) -> Polygon:
+    """ Simulate expected sensor readings (e.g., raycasting) at the virtual position """
+    # Placeholder: Use a circular patch to represent expected view
+    x, y = position
+    radius = 1.0
+    points = [(x + radius * math.cos(theta), y + radius * math.sin(theta)) for theta in np.linspace(0, 2 * math.pi, 36)]
+    return Polygon(points).intersection(env_map)
+
+
+def compute_turning_function(polygon: Polygon) -> List[float]:
+    """ Compute turning function from polygon's vertices """
+    coords = list(polygon.exterior.coords)
+    tf = [0.0]  # start with angle 0
+    for i in range(1, len(coords) - 1):
+        v1 = np.subtract(coords[i], coords[i - 1])
+        v2 = np.subtract(coords[i + 1], coords[i])
+        angle = math.atan2(v2[1], v2[0]) - math.atan2(v1[1], v1[0])
+        angle = (angle + math.pi) % (2 * math.pi) - math.pi
+        tf.append(tf[-1] + angle)
+    return tf
+
+
+def l2_norm_distance(tf1: List[float], tf2: List[float]) -> float:
+    """ Compute L2 norm distance between two turning functions, minimizing over circular shifts """
+    min_len = min(len(tf1), len(tf2))
+    tf1, tf2 = tf1[:min_len], tf2[:min_len]
+    best = float('inf')
+    for shift in range(min_len):
+        tf2_shifted = np.roll(tf2, shift)
+        dist = np.linalg.norm(np.array(tf1) - np.array(tf2_shifted))
+        if dist < best:
+            best = dist
+    return best
+
+
+def compare_polygons(p1: Polygon, p2: Polygon) -> float:
+    """ Compare polygons using turning functions """
+    tf1 = compute_turning_function(p1)
+    tf2 = compute_turning_function(p2)
+    return l2_norm_distance(tf1, tf2)
+
+
+def select_new_candidate_position(center: Tuple[float, float], radius: float) -> Tuple[float, float]:
+    """ Select a new candidate position around the current best estimate """
+    angle = random.uniform(0, 2 * math.pi)
+    dx = radius * math.cos(angle)
+    dy = radius * math.sin(angle)
+    return center[0] + dx, center[1] + dy
+
+
+def RLuTF(Or_old: Tuple[float, float], env_map: Polygon, sensor_data: List[Tuple[float, float]],
+          robot_actions: Tuple[float, float], delta: float, epsilon: float, threshold: float,
+          max_iterations: int = 10) -> Tuple[float, float]:
+    """ Robot Localization using Turning Function """
+
+    Or_new = Or_old
+    current_search_radius = delta
+
+    # Step 1: Calculate Virtual Position
+    Ov_current = apply_motion_model(Or_new, robot_actions)
+
+    # Step 2: Construct real polygon from current sensor data
+    Pr_current = create_polygon_from_sensor_data(sensor_data)
+
+    best_Ov = Ov_current
+    min_distance = float('inf')
+    iteration = 0
+
+    while current_search_radius > epsilon and iteration < max_iterations:
+        # Step 3: Construct polygon from virtual position
+        Pv_current = create_polygon_from_virtual_position(Ov_current, env_map)
+
+        # Step 4: Compare polygons
+        current_distance = compare_polygons(Pr_current, Pv_current)
+
+        if current_distance < min_distance:
+            min_distance = current_distance
+            best_Ov = Ov_current
+
+        if current_distance <= threshold:
+            print(f"[INFO] Localization converged with distance: {current_distance:.4f}")
+            break
+
+        # Step 5: Refine search
+        Ov_current = select_new_candidate_position(best_Ov, current_search_radius)
+        current_search_radius /= 2
+        iteration += 1
+        print(f"[DEBUG] Iteration {iteration}, Radius: {current_search_radius:.4f}, Distance: {current_distance:.4f}")
+
+    Or_new = best_Ov
+    return Or_new
