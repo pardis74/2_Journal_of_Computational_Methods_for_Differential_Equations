@@ -1,0 +1,38 @@
+def RLuTF(Or_old: Tuple[float, float], env_map: Polygon, sensor_data: List[Tuple[float, float]],
+          robot_actions: Tuple[float, float], delta: float, epsilon: float, threshold: float,
+          max_iterations: int = 10) -> Tuple[float, float]:
+    """ Robot Localization using Turning Function """
+
+    Or_new = Or_old
+    current_search_radius = delta
+
+    # Step 1: Calculate Virtual Position
+    Ov_current = apply_motion_model(Or_new, robot_actions)
+
+    # Step 2: Construct real polygon from current sensor data
+    Pr_current = create_polygon_from_sensor_data(sensor_data)
+
+    best_Ov = Ov_current
+    min_distance = float('inf')
+    iteration = 0
+
+    while current_search_radius > epsilon and iteration < max_iterations:
+        # Step 3: Construct polygon from virtual position
+        Pv_current = create_polygon_from_virtual_position(Ov_current, env_map)
+
+        # Step 4: Compare polygons
+        current_distance = compare_polygons(Pr_current, Pv_current)
+
+        if current_distance < min_distance:
+            min_distance = current_distance
+            best_Ov = Ov_current
+
+        if current_distance <= threshold:
+            print(f"[INFO] Localization converged with distance: {current_distance:.4f}")
+            break
+
+        # Step 5: Refine search
+        Ov_current = select_new_candidate_position(best_Ov, current_search_radius)
+        current_search_radius /= 2
+        iteration += 1
+        print(f"[DEBUG] Iteration {iteration}, Radius: {current_search_radius:.4f}, Distance: {current_distance:.4f}")
